@@ -4,6 +4,9 @@ import sys
 This is a Home Row interpreter written in Python. A compiler to x86 assembly written in Python also exists,
 but it's nice to be able to run it anywhere, on any processor. You can also just paste this into tio.run, and it will work.
 
+The program should be supplied as input, followed by a line containing only "@END". Follow this with any input given to the program you put in
+(yes, there is input in this version).
+
 This interpreter supports an extra command, staying true to the design that all commands should be unshifted characters
 on the home row of a Qwerty keyboard. 
 The command is g, and it is used for ASCII/Unicode input. The Home Row specification does not include g, so if portability
