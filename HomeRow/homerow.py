@@ -16,10 +16,8 @@ substitute for g.
 This interpreter also accepts commandline arguments to have the grid be sizes other than 5x5.
 Usage:
 -s [height] [width]
-So if you wanted the grid be 10x10, you would pass these arguments to this interpreter:
--s 10 10
-
-This also supports rectangular sizes with different width and height.
+So if you wanted the grid to be 7 wide and 10 high, you would pass these commandline arguments to this interpreter:
+-s 10 7
 
 Note that this feature is probably the least portable thing the interpreter does, since you could in theory write a program
 that interprets no change on input to mean the default, but it would be very difficult to write a program that works in
