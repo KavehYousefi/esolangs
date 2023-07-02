@@ -206,6 +206,18 @@
     (not (null
       (member candidate '(#\Newline #\Space #\Tab) :test #'char=)))))
 
+;;; -------------------------------------------------------
+
+(defun ignorable-character-p (candidate)
+  "Determines whether the CANDIDATE represents an ignorable character,
+   which is subsequently tolerated but skipped by during lexical
+   analyzation process, returning on confirmation a ``boolean'' value of
+   ``T'', otherwise ``NIL''."
+  (declare (type character candidate))
+  (the boolean
+    (not (null
+      (member (char-code candidate) '(0 13) :test #'=)))))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -480,6 +492,10 @@
         ((character-equals-p #\\)
           (lexer-read-singleton-token lexer :backslash))
         
+        ((ignorable-character-p character)
+          (advance)
+          (lexer-get-next-token lexer))
+        
         (T
           (error "Invalid character \"~c\" at position ~d."
             character position))))))
@@ -680,9 +696,6 @@
    ``:variable'' node representation thereof."
   (declare (type Parser parser))
   (with-parser (parser)
-; This line ``(eat :percent)`` was added by BoundedBeans.
-; It being missing was preventing the variable from working.
-; I don't know how to fully test if this fixes it, but it seems to work now.
     (eat :percent)
     (the Node
       (make-node :variable))))
@@ -744,14 +757,7 @@
    thereof."
   (declare (type Parser parser))
   (with-parser (parser)
-
-;; I (BoundedBeans) don't know Common Lisp at all,
-;; but from what I can tell this is a cast to the type Token.
-;; It seems to break programs using set literals.
-;; Commenting it out seems to have fixed it, 
-;; hopefully with no ill effects.
-
-;(the Token
+    (the Node
       (case (token-type current-token)
         (:empty-set
           (parser-parse-empty-set parser))
@@ -760,9 +766,7 @@
         (otherwise
           (error "Expected an empty set or a set literal, ~
                   but encountered the token ~s."
-            current-token))
-;)
-)))
+            current-token))))))
 
 ;;; -------------------------------------------------------
 
@@ -906,9 +910,6 @@
         
         (:semicolon
           (parser-parse-simple-instruction parser :semicolon
-; This line has been changed by BoundedBeans.
-; It was causing the decrement instruction to increment instead.
-           ;:increment-variable
             :decrement-variable))
         
         (:tilde
@@ -1817,16 +1818,19 @@
 
 ;;; -------------------------------------------------------
 
+#|
+(setf input
+  (prog1
+    (or (read-char NIL NIL)
+        input)
+    (clear-input)))
+|#
+
 (define-node-dispatch :input-character (interpreter node)
-;; I (BoundedBeans) prefer that SOAP programs provide their own prompts,
-;; to save programs that take large amounts of input from being cumbersome
-;; to use.
-;; I have commented out this line. This should prevent the prompt from appearing.
-;; Again, I know almost nothing about how to use Common Lisp, so this is
-;; just a guess on how to remove the prompt.
-  ;(format T "~&Please enter a character: ")
   (with-interpreter (interpreter)
-    (setf input (read-char)))
+    (setf input
+      (or (read-char NIL NIL)
+          #\Null)))
   (clear-input)
   (values))
 
@@ -1868,11 +1872,32 @@
           (make-parser
             (make-lexer code)))))))
 
+;;; -------------------------------------------------------
+
+(defun load-SOAP-script ()
+  "Reads zero or more lines from the standard input, concatenates the
+   same, interprets the result as a piece of SOAP source code, executes
+   it, and returns no value."
+  (interpret-SOAP
+    (with-output-to-string (code)
+      (declare (type string-stream code))
+      (loop
+        for line
+          of-type (or null string)
+          =       (read-line *standard-input* NIL NIL)
+        while (and line (plusp (length line)))
+        do (format code "~&~a" line))))
+  (values))
+
+;;; -------------------------------------------------------
+
 ;; Example on how to run a program
 ;; Make sure to escape quotes and backslashes
 ;; (they are required for I/O)
 (interpret-SOAP "*%⊇{1}[\"e*1]")
 
+;;; -------------------------------------------------------
 
-
-
+;; Query the user for zero or more lines of SOAP code and evaluate the
+;; same.
+(load-SOAP-script)
